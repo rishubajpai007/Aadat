@@ -16,7 +16,6 @@ struct FocusWidgetsLiveActivity: Widget {
         ActivityConfiguration(for: FocusTimerAttributes.self) { context in
             // MARK: - Lock Screen / Banner UI
             HStack(spacing: 12) {
-                // Left: Icon and Title
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "brain.head.profile")
@@ -35,7 +34,6 @@ struct FocusWidgetsLiveActivity: Widget {
 
                 Spacer()
 
-                // Right: Countdown Timer
                 VStack(alignment: .trailing) {
                     Text(
                         timerInterval: Date()...context.state.estimatedEndTime,
@@ -54,15 +52,12 @@ struct FocusWidgetsLiveActivity: Widget {
         } dynamicIsland: { context in
             // MARK: - Dynamic Island
             DynamicIsland {
-                // Expanded – Leading
                 DynamicIslandExpandedRegion(.leading) {
                     Image(systemName: "brain.head.profile")
                         .font(.title2)
                         .foregroundColor(.indigo)
                 }
-//                .dynamicIslandVerticalPlacement(.center)
 
-                // Expanded – Trailing
                 DynamicIslandExpandedRegion(.trailing) {
                     Text(
                         timerInterval: Date()...context.state.estimatedEndTime,
@@ -74,9 +69,7 @@ struct FocusWidgetsLiveActivity: Widget {
                     .foregroundColor(.yellow)
                     .multilineTextAlignment(.trailing)
                 }
-//                .dynamicIslandVerticalPlacement(.center)
 
-                // Expanded – Bottom
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .center, spacing: 6) {
                         Text(context.attributes.sessionName)
@@ -95,13 +88,11 @@ struct FocusWidgetsLiveActivity: Widget {
                 }
 
             } compactLeading: {
-                // Compact leading
                 Image(systemName: "brain.fill")
                     .foregroundColor(.indigo)
                     .padding(.leading, 4)
 
             } compactTrailing: {
-                // Compact trailing – small countdown
                 Text(
                     timerInterval: Date()...context.state.estimatedEndTime,
                     countsDown: true
@@ -113,7 +104,6 @@ struct FocusWidgetsLiveActivity: Widget {
                 .padding(.trailing, 4)
 
             } minimal: {
-                // Minimal
                 Image(systemName: "brain.fill")
                     .foregroundColor(.indigo)
             }

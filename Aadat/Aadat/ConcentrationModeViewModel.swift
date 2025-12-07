@@ -14,7 +14,6 @@ class ConcentrationModeViewModel: ObservableObject {
     
     @Published private var model = ConcentrationModeModel()
     
-    // Public accessors
     var timeRemaining: TimeInterval { model.timeRemaining }
     var duration: TimeInterval { model.duration }
     var isRunning: Bool { model.isRunning }
@@ -22,8 +21,6 @@ class ConcentrationModeViewModel: ObservableObject {
     private var timer: Timer?
     private var targetEndTime: Date?
     private let notificationId = "focus_timer_end"
-    
-    // Hold reference to the current Live Activity
     private var currentActivity: Activity<FocusTimerAttributes>?
     
     var progress: Double {
@@ -55,26 +52,20 @@ class ConcentrationModeViewModel: ObservableObject {
     // MARK: - Live Activities (Lock Screen)
     
     private func startLiveActivity(duration: TimeInterval) {
-        // 1. Check if Live Activities are supported (iOS 16.1+)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        
-        // 2. Define the Attributes (Static Data)
         let attributes = FocusTimerAttributes(
             totalDuration: duration,
             sessionName: "Focus Session"
         )
         
-        // 3. Define the Initial State (Dynamic Data)
-        // Note: We use the absolute target date. The system handles the countdown logic.
         let targetDate = Date().addingTimeInterval(duration)
         let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: targetDate)
         
-        // 4. Request the Activity
         do {
             let activity = try Activity<FocusTimerAttributes>.request(
                 attributes: attributes,
                 contentState: contentState,
-                pushType: nil // We are not using remote push updates
+                pushType: nil
             )
             self.currentActivity = activity
             print("Live Activity Started: \(activity.id)")
@@ -85,12 +76,9 @@ class ConcentrationModeViewModel: ObservableObject {
     
     private func endLiveActivity() {
         guard let activity = currentActivity else { return }
-        
-        // Update state to show 0 time immediately
         let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: Date())
         
         Task {
-            // Dismiss immediately
             await activity.end(using: finalState, dismissalPolicy: .immediate)
             self.currentActivity = nil
         }
@@ -190,8 +178,6 @@ class ConcentrationModeViewModel: ObservableObject {
         model.duration = 0
         targetEndTime = nil
         cancelNotification()
-        
-        // End Live Activity
         endLiveActivity()
     }
     
@@ -201,8 +187,6 @@ class ConcentrationModeViewModel: ObservableObject {
         model.isRunning = false
         targetEndTime = nil
         cancelNotification()
-        
-        // End Live Activity (Since pausing complex logic is hard in Live Activities, we usually end it and restart on resume)
         endLiveActivity()
     }
     
