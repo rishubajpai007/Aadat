@@ -4,65 +4,94 @@ struct HabitRowView: View {
     @Bindable var habit: Habit
     @EnvironmentObject var viewModel: HabitsViewModel
     
-    var isCompletedToday: Bool {
-        viewModel.isCompletedOnDate(habit: habit, date: Date())
-    }
-    
-    var currentProgress: Double {
-        isCompletedToday ? 1.0 : 0.0
+    private var lastSevenDays: [Date] {
+        let calendar = Calendar.current
+        return (0..<7).map { index in
+            calendar.date(byAdding: .day, value: -index, to: Date()) ?? Date()
+        }.reversed()
     }
     
     var body: some View {
-        // MARK: Wrapped in NavigationLink for Phase 4
-        NavigationLink(destination: HabitDetailView(habit: habit)) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                // MARK: 1. Completion Toggle & Progress Ring
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 3)
-                        .frame(width: 28, height: 28)
-
-                    Circle()
-                        .trim(from: 0, to: currentProgress)
-                        .stroke(isCompletedToday ? .green : .blue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 0.5), value: currentProgress)
-
-                    Image(systemName: isCompletedToday ? "checkmark.circle.fill" : "circle")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundColor(isCompletedToday ? .green : .gray)
-                }
-                .onTapGesture {
-                    viewModel.toggleCompletion(for: habit)
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                }
-                .padding(.trailing, 8)
-                
-                VStack(alignment: .leading) {
-                    Text(habit.name)
-                        .font(.headline)
-                    
-                    Text("Target: \(habit.targetFrequency) per \(habit.targetUnit.displayName.lowercased())")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                Text(habit.name)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .lineLimit(1)
                 
                 Spacer()
                 
-                // MARK: 3. Streak Display
-                VStack(alignment: .trailing) {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(habit.currentStreak > 0 ? .orange : .gray.opacity(0.3))
+                        .font(.caption)
                     Text("\(habit.currentStreak)")
-                        .font(.title2)
+                        .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(habit.currentStreak > 0 ? .orange : .secondary)
-                    Text("Streak")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                }
+            }
+            
+            HStack(spacing: 0) {
+                ForEach(lastSevenDays, id: \.self) { date in
+                    DayToggleView(date: date, habit: habit, viewModel: viewModel)
+                        .frame(maxWidth: .infinity)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+}
+
+struct DayToggleView: View {
+    let date: Date
+    let habit: Habit
+    var viewModel: HabitsViewModel
+    
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+    
+    private var isCompleted: Bool {
+        viewModel.isCompletedOnDate(habit: habit, date: date)
+    }
+    
+    private var dayLetter: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEEE"
+        return formatter.string(from: date)
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(dayLetter)
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(isToday ? .primary : .secondary)
+            
+            ZStack {
+                Circle()
+                    .fill(isCompleted ? Color.blue : Color(UIColor.systemGray5))
+                    .frame(width: 32, height: 32)
+                
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .onTapGesture {
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    viewModel.toggleCompletion(for: habit, date: date)
+                }
+            }
+        }
     }
 }

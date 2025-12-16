@@ -4,29 +4,34 @@ import SwiftData
 struct HabitsView: View {
     
     @EnvironmentObject var viewModel: HabitsViewModel
-    
     @State private var showingAddHabitSheet = false
 
     var body: some View {
         NavigationView {
-            List {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
+                
                 if viewModel.habits.isEmpty {
                     ContentUnavailableView("No Habits Yet", systemImage: "checklist.unchecked", description: Text("Tap '+' to start tracking a new habit."))
-                        .listRowSeparator(.hidden)
                 } else {
-                    // MARK: List Habits using the new HabitRowView
-                    ForEach($viewModel.habits) { $habit in
-                        HabitRowView(habit: habit)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach($viewModel.habits) { $habit in
+                                NavigationLink(destination: HabitDetailView(habit: habit)) {
+                                    HabitRowView(habit: habit)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding()
                     }
-                    .onDelete(perform: viewModel.deleteHabits)
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("Your Habits")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
+                    EmptyView()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -34,10 +39,10 @@ struct HabitsView: View {
                     } label: {
                         Label("Add Habit", systemImage: "plus.circle.fill")
                             .font(.title3)
+                            .foregroundColor(.blue)
                     }
                 }
             }
-            // MARK: Integrate Add Habit Modal
             .sheet(isPresented: $showingAddHabitSheet) {
                 AddHabitView()
             }
