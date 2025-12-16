@@ -1,21 +1,11 @@
-//
-//  HabitDetailView.swift
-//  Aadat
-//
-//  Created by Rishu Bajpai on 07/12/25.
-//
-
 import SwiftUI
 import SwiftData
 
 struct HabitDetailView: View {
     @Bindable var habit: Habit
     @EnvironmentObject var viewModel: HabitsViewModel
-    
     @State private var showingEditSheet = false
-    
-    // MARK: Calendar Helper
-    private let calendar = Calendar.current
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         List {
@@ -24,23 +14,22 @@ struct HabitDetailView: View {
                 HStack {
                     StatisticView(value: "\(habit.currentStreak)", label: "Current Streak", color: .orange)
                     Divider()
-                    StatisticView(value: "\(habit.completionDates.count)", label: "Total Completed", color: .blue)
+                    StatisticView(value: "\(habit.completionDates.count)", label: "Total Days", color: .blue)
                 }
             }
             .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .padding(.vertical, 8)
 
-            // MARK: Section 2: Completion Calendar
-            Section("Completion History") {
-                CalendarView(
-                    daysToShow: 30,
-                    completionDates: habit.completionDates
-                )
-                .frame(height: 250)
-                .listRowInsets(EdgeInsets())
+            // MARK: Section 2: Yearly Heatmap (The "Github" View)
+            Section(header: Text("Yearly Consistency")) {
+                HabitHeatmapView(habit: habit)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
             
             // MARK: Section 3: Habit Details & Settings
-            Section("Details & Settings") {
+            Section("Details") {
                 HStack {
                     Text("Target")
                     Spacer()
@@ -54,29 +43,33 @@ struct HabitDetailView: View {
                     Text(habit.creationDate, style: .date)
                         .foregroundColor(.secondary)
                 }
+            }
+            
+            // MARK: Section 4: Actions
+            Section {
+                Button("Edit Habit") {
+                    showingEditSheet = true
+                }
                 
                 Button("Delete Habit", role: .destructive) {
-                    // For safety, this would usually trigger a confirmation dialog
-                    viewModel.deleteHabits(offsets: IndexSet(integer: 0)) // Needs refinement for single deletion
+                    deleteHabit()
                 }
             }
         }
         .navigationTitle(habit.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Edit") {
-                    showingEditSheet = true
-                }
-            }
-        }
         .sheet(isPresented: $showingEditSheet) {
             AddHabitView(habitToEdit: habit)
         }
     }
+    
+    private func deleteHabit() {
+        if let index = viewModel.habits.firstIndex(where: { $0.id == habit.id }) {
+            viewModel.deleteHabits(offsets: IndexSet(integer: index))
+            dismiss()
+        }
+    }
 }
-
-// MARK: - Helper Views
 
 struct StatisticView: View {
     let value: String
@@ -84,53 +77,17 @@ struct StatisticView: View {
     let color: Color
     
     var body: some View {
-        VStack {
+        VStack(spacing: 4) {
             Text(value)
-                .font(.largeTitle)
-                .fontWeight(.black)
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
                 .foregroundColor(color)
             Text(label)
                 .font(.caption)
+                .fontWeight(.medium)
                 .foregroundColor(.secondary)
+                .textCase(.uppercase)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct CalendarView: View {
-    let daysToShow: Int
-    let completionDates: [Date]
-    
-    var body: some View {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let startDate = calendar.date(byAdding: .day, value: -(daysToShow - 1), to: today) ?? today
-        
-        VStack {
-            HStack {
-                Text("Last \(daysToShow) Days")
-                    .font(.headline)
-                    .padding([.leading, .top])
-                Spacer()
-            }
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 5) {
-                ForEach(0..<daysToShow, id: \.self) { index in
-                    if let date = calendar.date(byAdding: .day, value: index, to: startDate) {
-                        let isCompleted = completionDates.contains { calendar.isDate($0, inSameDayAs: date) }
-                        
-                        VStack {
-                            Text("\(calendar.component(.day, from: date))")
-                                .font(.caption)
-                                .frame(width: 30, height: 30)
-                                .background(isCompleted ? Color.green.opacity(0.8) : Color.clear)
-                                .foregroundColor(isCompleted ? .white : .primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
-                    }
-                }
-            }
-            .padding()
-        }
+        .padding(.vertical, 8)
     }
 }
