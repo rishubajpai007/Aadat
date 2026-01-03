@@ -53,6 +53,13 @@ class ConcentrationModeViewModel: ObservableObject {
     
     private func startLiveActivity(duration: TimeInterval) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        
+        for activity in Activity<FocusTimerAttributes>.activities {
+            Task {
+                await activity.end(dismissalPolicy: .immediate)
+            }
+        }
+        
         let attributes = FocusTimerAttributes(
             totalDuration: duration,
             sessionName: "Focus Session"
@@ -68,19 +75,24 @@ class ConcentrationModeViewModel: ObservableObject {
                 pushType: nil
             )
             self.currentActivity = activity
-            print("Live Activity Started: \(activity.id)")
         } catch {
             print("Error starting Live Activity: \(error.localizedDescription)")
         }
     }
     
     private func endLiveActivity() {
-        guard let activity = currentActivity else { return }
-        let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: Date())
-        
-        Task {
-            await activity.end(using: finalState, dismissalPolicy: .immediate)
+        if let activity = currentActivity {
+            let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: Date())
+            Task {
+                await activity.end(using: finalState, dismissalPolicy: .immediate)
+            }
             self.currentActivity = nil
+        }
+        
+        for activity in Activity<FocusTimerAttributes>.activities {
+            Task {
+                await activity.end(dismissalPolicy: .immediate)
+            }
         }
     }
     
@@ -133,11 +145,15 @@ class ConcentrationModeViewModel: ObservableObject {
         
         let newDuration = TimeInterval(minutes * 60)
         
-        if isRunning && newDuration == duration {
-            pauseTimer()
-        } else {
-            startTimer(duration: newDuration)
+        if isRunning {
+            if newDuration == duration {
+                pauseTimer()
+                return
+            } else {
+                stopTimer()
+            }
         }
+        startTimer(duration: newDuration)
     }
     
     private func startTimer(duration: TimeInterval) {
@@ -147,8 +163,6 @@ class ConcentrationModeViewModel: ObservableObject {
         targetEndTime = Date().addingTimeInterval(duration)
         
         scheduleNotification(seconds: duration)
-        
-        // Start Live Activity
         startLiveActivity(duration: duration)
         
         startTicker()
