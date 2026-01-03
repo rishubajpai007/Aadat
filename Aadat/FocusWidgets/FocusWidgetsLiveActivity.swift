@@ -58,18 +58,6 @@ struct FocusWidgetsLiveActivity: Widget {
                         .foregroundColor(.indigo)
                 }
 
-                DynamicIslandExpandedRegion(.trailing) {
-                    Text(
-                        timerInterval: Date()...context.state.estimatedEndTime,
-                        countsDown: true
-                    )
-                    .monospacedDigit()
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.yellow)
-                    .multilineTextAlignment(.trailing)
-                }
-
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .center, spacing: 6) {
                         Text(context.attributes.sessionName)
@@ -82,7 +70,7 @@ struct FocusWidgetsLiveActivity: Widget {
                             countsDown: true
                         )
                         .tint(.indigo)
-                        .frame(height: 6)
+                        .frame(height: 30)
                     }
                     .padding(.horizontal, 8)
                 }
