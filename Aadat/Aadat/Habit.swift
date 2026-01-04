@@ -46,4 +46,31 @@ final class Habit {
 
         return streak
     }
+    
+    // MARK: - Longest Streak (All-time)
+    var longestStreak: Int {
+        guard !completionDates.isEmpty else { return 0 }
+        
+        let calendar = Calendar.current
+        // Unique days, sorted ascending
+        let uniqueSortedDays = Array(Set(completionDates.map { calendar.startOfDay(for: $0) })).sorted()
+        
+        var longest = 1
+        var current = 1
+        
+        for i in 1..<uniqueSortedDays.count {
+            let prev = uniqueSortedDays[i - 1]
+            let curr = uniqueSortedDays[i]
+            if let nextOfPrev = calendar.date(byAdding: .day, value: 1, to: prev),
+               calendar.isDate(nextOfPrev, inSameDayAs: curr) {
+                current += 1
+            } else {
+                longest = max(longest, current)
+                current = 1
+            }
+        }
+        longest = max(longest, current)
+        return longest
+    }
 }
+
