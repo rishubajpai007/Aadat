@@ -9,7 +9,6 @@ struct HabitDetailView: View {
     
     var body: some View {
         List {
-            // MARK: Section 1: Summary Stats
             Section {
                 HStack {
                     StatisticView(value: "\(habit.currentStreak)", label: "Current Streak", color: .orange)
@@ -18,25 +17,15 @@ struct HabitDetailView: View {
                 }
             }
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
             .padding(.vertical, 8)
 
-            // MARK: Section 2: Yearly Heatmap (The "Github" View)
             Section(header: Text("Yearly Consistency")) {
                 HabitHeatmapView(habit: habit)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
             
-            // MARK: Section 3: Habit Details & Settings
             Section("Details") {
-                HStack {
-                    Text("Target")
-                    Spacer()
-                    Text("\(habit.targetFrequency) per \(habit.targetUnit.displayName.lowercased())")
-                        .foregroundColor(.secondary)
-                }
-                
                 HStack {
                     Text("Created")
                     Spacer()
@@ -45,15 +34,9 @@ struct HabitDetailView: View {
                 }
             }
             
-            // MARK: Section 4: Actions
             Section {
-                Button("Edit Habit") {
-                    showingEditSheet = true
-                }
-                
-                Button("Delete Habit", role: .destructive) {
-                    deleteHabit()
-                }
+                Button("Edit Habit") { showingEditSheet = true }
+                Button("Delete Habit", role: .destructive) { deleteHabit() }
             }
         }
         .navigationTitle(habit.name)
@@ -70,6 +53,8 @@ struct HabitDetailView: View {
         }
     }
 }
+
+// MARK: - Helper Views
 
 struct StatisticView: View {
     let value: String

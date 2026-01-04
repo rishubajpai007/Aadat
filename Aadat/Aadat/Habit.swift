@@ -6,21 +6,16 @@ final class Habit {
     @Attribute(.unique) var id: UUID
     var name: String
     var creationDate: Date
-    
-    var targetFrequency: Int
-    var targetUnit: HabitUnit
     var completionDates: [Date]
     
-    init(name: String, targetFrequency: Int, targetUnit: HabitUnit) {
+    init(name: String) {
         self.id = UUID()
         self.name = name
         self.creationDate = Date()
-        self.targetFrequency = targetFrequency
-        self.targetUnit = targetUnit
         self.completionDates = []
     }
     
-    // MARK: - Phase 3: Streak Calculation
+    // MARK: - Streak Calculation (Simplified Daily)
     var currentStreak: Int {
         guard !completionDates.isEmpty else { return 0 }
 
@@ -31,16 +26,17 @@ final class Habit {
         var streak = 0
         var checkingDate = calendar.startOfDay(for: Date())
         
+        // If today is not completed, check if yesterday was.
         if !uniqueSortedDays.contains(where: { calendar.isDate($0, inSameDayAs: checkingDate) }) {
-            guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: checkingDate),
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkingDate),
                   uniqueSortedDays.contains(where: { calendar.isDate($0, inSameDayAs: yesterday) }) else {
                 return 0
             }
             checkingDate = yesterday
         }
+        
         while uniqueSortedDays.contains(where: { calendar.isDate($0, inSameDayAs: checkingDate) }) {
             streak += 1
-            // Move back one day
             guard let previousDay = calendar.date(byAdding: .day, value: -1, to: checkingDate) else { break }
             checkingDate = previousDay
         }
