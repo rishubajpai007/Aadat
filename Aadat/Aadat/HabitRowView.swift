@@ -44,11 +44,26 @@ struct HabitRowView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(
+            ZStack {
+                Color(UIColor.secondarySystemGroupedBackground)
+                LinearGradient(
+                    colors: [habit.category.color.opacity(0.15), habit.category.color.opacity(0.02)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
         .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(habit.category.color.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
     }
 }
+
+// MARK: - Day Toggle Component
 
 struct DayToggleView: View {
     let date: Date
@@ -78,7 +93,7 @@ struct DayToggleView: View {
             
             ZStack {
                 Circle()
-                    .fill(isCompleted ? Color.blue : Color(UIColor.systemGray5))
+                    .fill(isCompleted ? habit.category.color : Color(UIColor.systemGray5))
                     .frame(width: 32, height: 32)
                 
                 if isCompleted {

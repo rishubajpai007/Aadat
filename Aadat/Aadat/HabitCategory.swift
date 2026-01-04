@@ -1,12 +1,5 @@
-//
-//  HabitCategory.swift
-//  Aadat
-//
-//  Created by Rishu Bajpai on 04/01/26.
-//
-
-
 import Foundation
+import SwiftUI
 
 enum HabitCategory: String, Codable, CaseIterable {
     case sports = "Sports"
@@ -32,6 +25,21 @@ enum HabitCategory: String, Codable, CaseIterable {
         case .fun: return "🎉"
         case .outdoor: return "🌳"
         case .other: return "✨"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .sports: return .blue
+        case .health: return .green
+        case .work: return .indigo
+        case .food: return .orange
+        case .finance: return .mint
+        case .yoga: return .purple
+        case .social: return .cyan
+        case .fun: return .pink
+        case .outdoor: return .teal
+        case .other: return .gray
         }
     }
 }
