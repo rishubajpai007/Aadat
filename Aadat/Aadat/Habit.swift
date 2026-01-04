@@ -7,14 +7,16 @@ final class Habit {
     var name: String
     var creationDate: Date
     var completionDates: [Date]
-    var category: HabitCategory 
+    var category: HabitCategory = HabitCategory.other
+    var reminderTime: Date? 
     
-    init(name: String, category: HabitCategory = .other) {
+    init(name: String, category: HabitCategory = .other, reminderTime: Date? = nil) {
         self.id = UUID()
         self.name = name
         self.creationDate = Date()
         self.completionDates = []
         self.category = category
+        self.reminderTime = reminderTime
     }
     
     // MARK: - Streak Calculation (Daily)

@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import SwiftUI
 import Combine
+import UserNotifications
 
 class HabitsViewModel: ObservableObject {
     let modelContainer: ModelContainer
@@ -30,9 +31,14 @@ class HabitsViewModel: ObservableObject {
     }
     
     @MainActor
-    func addHabit(name: String, category: HabitCategory) {
-        let newHabit = Habit(name: name, category: category)
+    func addHabit(name: String, category: HabitCategory, reminderTime: Date?) {
+        let newHabit = Habit(name: name, category: category, reminderTime: reminderTime)
         modelContainer.mainContext.insert(newHabit)
+        
+        if let _ = reminderTime {
+            scheduleNotification(for: newHabit)
+        }
+        
         Task { await fetchHabits() }
     }
     
@@ -40,6 +46,7 @@ class HabitsViewModel: ObservableObject {
     func deleteHabits(offsets: IndexSet) {
         offsets.forEach { index in
             let habit = habits[index]
+            cancelNotification(for: habit)
             modelContainer.mainContext.delete(habit)
         }
         Task { await fetchHabits() }
@@ -60,5 +67,47 @@ class HabitsViewModel: ObservableObject {
         }
         try? modelContainer.mainContext.save()
         objectWillChange.send()
+    }
+    
+    // MARK: - Notification Management
+    
+    func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("Notification permission granted.")
+            } else if let error = error {
+                print("Notification permission error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func scheduleNotification(for habit: Habit) {
+        guard let reminderTime = habit.reminderTime else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Time for your habit!"
+        content.body = "Don't forget to: \(habit.name) \(habit.category.icon)"
+        content.sound = .default
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        
+        let request = UNNotificationRequest(
+            identifier: habit.id.uuidString,
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Error scheduling notification: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func cancelNotification(for habit: Habit) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [habit.id.uuidString])
     }
 }
