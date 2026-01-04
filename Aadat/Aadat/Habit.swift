@@ -7,15 +7,17 @@ final class Habit {
     var name: String
     var creationDate: Date
     var completionDates: [Date]
+    var category: HabitCategory 
     
-    init(name: String) {
+    init(name: String, category: HabitCategory = .other) {
         self.id = UUID()
         self.name = name
         self.creationDate = Date()
         self.completionDates = []
+        self.category = category
     }
     
-    // MARK: - Streak Calculation (Simplified Daily)
+    // MARK: - Streak Calculation (Daily)
     var currentStreak: Int {
         guard !completionDates.isEmpty else { return 0 }
 
@@ -26,7 +28,6 @@ final class Habit {
         var streak = 0
         var checkingDate = calendar.startOfDay(for: Date())
         
-        // If today is not completed, check if yesterday was.
         if !uniqueSortedDays.contains(where: { calendar.isDate($0, inSameDayAs: checkingDate) }) {
             guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkingDate),
                   uniqueSortedDays.contains(where: { calendar.isDate($0, inSameDayAs: yesterday) }) else {

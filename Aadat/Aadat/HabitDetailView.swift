@@ -27,6 +27,13 @@ struct HabitDetailView: View {
             
             Section("Details") {
                 HStack {
+                    Text("Category")
+                    Spacer()
+                    Text("\(habit.category.icon) \(habit.category.rawValue)")
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack {
                     Text("Created")
                     Spacer()
                     Text(habit.creationDate, style: .date)

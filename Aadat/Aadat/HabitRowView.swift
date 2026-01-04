@@ -14,6 +14,9 @@ struct HabitRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
+                Text(habit.category.icon)
+                    .font(.title3)
+                
                 Text(habit.name)
                     .font(.headline)
                     .fontWeight(.bold)

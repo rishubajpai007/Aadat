@@ -30,8 +30,8 @@ class HabitsViewModel: ObservableObject {
     }
     
     @MainActor
-    func addHabit(name: String) {
-        let newHabit = Habit(name: name)
+    func addHabit(name: String, category: HabitCategory) {
+        let newHabit = Habit(name: name, category: category)
         modelContainer.mainContext.insert(newHabit)
         Task { await fetchHabits() }
     }
