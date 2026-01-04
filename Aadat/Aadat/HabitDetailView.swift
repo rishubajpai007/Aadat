@@ -8,6 +8,24 @@ struct HabitDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var selectedMonth = Date()
     
+    // MARK: - Insights Calculations
+    
+    private var completionsThisYear: Int {
+        let calendar = Calendar.current
+        let currentYear = calendar.component(.year, from: Date())
+        return habit.completionDates.filter { calendar.component(.year, from: $0) == currentYear }.count
+    }
+    
+    private var completionsThisMonth: Int {
+        let calendar = Calendar.current
+        return habit.completionDates.filter { calendar.isDate($0, equalTo: Date(), toGranularity: .month) }.count
+    }
+    
+    private var completionsThisWeek: Int {
+        let calendar = Calendar.current
+        return habit.completionDates.filter { calendar.isDate($0, equalTo: Date(), toGranularity: .weekOfYear) }.count
+    }
+    
     var body: some View {
         List {
             Section {
@@ -16,7 +34,7 @@ struct HabitDetailView: View {
             }
             .listRowInsets(EdgeInsets())
             
-            Section ("Streak"){
+            Section {
                 let isTopStreak = habit.currentStreak > 0 && habit.currentStreak == habit.longestStreak
                 
                 HStack {
@@ -38,11 +56,27 @@ struct HabitDetailView: View {
             .listRowSeparator(.hidden)
             .padding(.vertical, 8)
 
-            Section(header: Text("365 day Heatmap")) {
+            Section(header: Text("Yearly Consistency")) {
                 HabitHeatmapView(habit: habit)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
+            
+            Section(header: Text("Yearly Insights")) {
+                HStack(spacing: 0) {
+                    InsightItem(value: "\(completionsThisYear)", label: "This Year", color: .indigo)
+                    
+                    Divider().frame(height: 35)
+                    
+                    InsightItem(value: "\(completionsThisMonth)", label: "This Month", color: .blue)
+                    
+                    Divider().frame(height: 35)
+                    
+                    InsightItem(value: "\(completionsThisWeek)", label: "This Week", color: .teal)
+                }
+                .padding(.vertical, 16)
+            }
+            .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
             
             Section("Details") {
                 HStack {
@@ -86,6 +120,29 @@ struct HabitDetailView: View {
             viewModel.deleteHabits(offsets: IndexSet(integer: index))
             dismiss()
         }
+    }
+}
+
+// MARK: - Insights Component
+
+struct InsightItem: View {
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundColor(color)
+            
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+                .tracking(0.5)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -171,7 +228,7 @@ struct HabitCalendarView: View {
         
         let range = calendar.range(of: .day, in: .month, for: firstDayOfMonth)!
         let firstWeekday = calendar.component(.weekday, from: firstDayOfMonth)
-        
+    
         let offset = (firstWeekday + 5) % 7
         
         var days: [Date?] = Array(repeating: nil, count: offset)
