@@ -11,13 +11,14 @@ struct HabitHeatmapView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             
-                ScrollViewReader { proxy in
+            ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: spacing) {
                         ForEach(0..<weeksToDisplay, id: \.self) { weekIndex in
                             VStack(spacing: spacing) {
                                 ForEach(0..<daysPerWeek, id: \.self) { dayIndex in
                                     if let date = getDateForGrid(weekIndex: weekIndex, dayIndex: dayIndex) {
+                        
                                         let isCompleted = isCompletedOnDate(date)
                                         let isToday = Calendar.current.isDateInToday(date)
                                         let isFuture = date > Date()
@@ -26,13 +27,13 @@ struct HabitHeatmapView: View {
                                             .fill(colorForCell(isCompleted: isCompleted, isFuture: isFuture, isToday: isToday))
                                             .frame(width: blockSize, height: blockSize)
                                     } else {
-                                        // Fallback for calculation errors
                                         Color.clear
                                             .frame(width: blockSize, height: blockSize)
                                     }
                                 }
                             }
-                            .id(weekIndex)                             .overlay(alignment: .topLeading) {
+                            .id(weekIndex)
+                            .overlay(alignment: .topLeading) {
                                 if let month = getMonthLabel(weekIndex: weekIndex) {
                                     Text(month)
                                         .font(.system(size: 8))
@@ -55,12 +56,21 @@ struct HabitHeatmapView: View {
             
             HStack(spacing: 12) {
                 Spacer()
-                Label("Less", systemImage: "circle.fill")
-                    .font(.caption2)
-                    .foregroundColor(Color(UIColor.secondarySystemFill))
-                Label("More", systemImage: "circle.fill")
-                    .font(.caption2)
-                    .foregroundColor(.green)
+                Text("Less")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 2) {
+                    ForEach(0..<4) { i in
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(habit.category.color.opacity(Double(i + 1) * 0.25))
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                
+                Text("More")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
             }
             .padding(.top, 4)
         }
@@ -68,25 +78,20 @@ struct HabitHeatmapView: View {
         .padding(.horizontal, 8)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
     
-    // MARK: - Date Logic
+    // MARK: - Logic Helpers
     
     private func getDateForGrid(weekIndex: Int, dayIndex: Int) -> Date? {
         let calendar = Calendar.current
         let today = Date()
-        
         guard let startOfCurrentWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) else {
             return nil
         }
-        
         let weeksAgo = (weeksToDisplay - 1) - weekIndex
-        
         guard let startOfTargetWeek = calendar.date(byAdding: .weekOfYear, value: -weeksAgo, to: startOfCurrentWeek) else {
             return nil
         }
-        
         return calendar.date(byAdding: .day, value: dayIndex, to: startOfTargetWeek)
     }
     
@@ -100,20 +105,18 @@ struct HabitHeatmapView: View {
             return Color.clear
         }
         if isCompleted {
-            return .green        }
+            return habit.category.color
+        }
         if isToday {
             return Color(UIColor.systemFill)
         }
         return Color(UIColor.secondarySystemFill)
     }
     
-    // MARK: - Label Helpers
-    
     private func getMonthLabel(weekIndex: Int) -> String? {
         guard let date = getDateForGrid(weekIndex: weekIndex, dayIndex: 0) else { return nil }
         let calendar = Calendar.current
         let day = calendar.component(.day, from: date)
-        
         if day >= 1 && day <= 7 {
             let formatter = DateFormatter()
             formatter.dateFormat = "MMM"
