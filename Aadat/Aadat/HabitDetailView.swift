@@ -26,6 +26,18 @@ struct HabitDetailView: View {
         return habit.completionDates.filter { calendar.isDate($0, equalTo: Date(), toGranularity: .weekOfYear) }.count
     }
     
+    private var successPercentage: Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: habit.creationDate)
+        let end = calendar.startOfDay(for: Date())
+        let components = calendar.dateComponents([.day], from: start, to: end)
+        let totalDays = (components.day ?? 0) + 1
+        let completions = habit.completionDates.count
+        
+        let percentage = Double(completions) / Double(max(1, totalDays)) * 100
+        return Int(min(100, max(0, percentage)))
+    }
+    
     var body: some View {
         List {
             Section {
@@ -64,15 +76,19 @@ struct HabitDetailView: View {
             
             Section(header: Text("Yearly Insights")) {
                 HStack(spacing: 0) {
-                    InsightItem(value: "\(completionsThisYear)", label: "This Year", color: .indigo)
+                    InsightItem(value: "\(completionsThisYear)", label: "Year", color: .indigo)
                     
                     Divider().frame(height: 35)
                     
-                    InsightItem(value: "\(completionsThisMonth)", label: "This Month", color: .blue)
+                    InsightItem(value: "\(completionsThisMonth)", label: "Month", color: .blue)
                     
                     Divider().frame(height: 35)
                     
-                    InsightItem(value: "\(completionsThisWeek)", label: "This Week", color: .teal)
+                    InsightItem(value: "\(completionsThisWeek)", label: "Week", color: .teal)
+                    
+                    Divider().frame(height: 35)
+                    
+                    InsightItem(value: "\(successPercentage)%", label: "Success", color: .purple)
                 }
                 .padding(.vertical, 16)
             }
@@ -80,6 +96,9 @@ struct HabitDetailView: View {
             
             Section("Details") {
                 HStack {
+                    Circle()
+                        .fill(habit.category.color)
+                        .frame(width: 8, height: 8)
                     Text("Category")
                     Spacer()
                     Text("\(habit.category.icon) \(habit.category.rawValue)")
@@ -88,6 +107,9 @@ struct HabitDetailView: View {
                 
                 if let reminder = habit.reminderTime {
                     HStack {
+                        Image(systemName: "bell.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
                         Text("Reminder")
                         Spacer()
                         Text(reminder, style: .time)
@@ -96,6 +118,9 @@ struct HabitDetailView: View {
                 }
                 
                 HStack {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     Text("Created")
                     Spacer()
                     Text(habit.creationDate, style: .date)
@@ -133,7 +158,7 @@ struct InsightItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(color)
             
             Text(label)
@@ -146,7 +171,7 @@ struct InsightItem: View {
     }
 }
 
-// MARK: - Habit Calendar View
+// MARK: - Habit Calendar View (Remains same for grid logic)
 
 struct HabitCalendarView: View {
     let habit: Habit
@@ -160,10 +185,7 @@ struct HabitCalendarView: View {
             HStack {
                 Text(selectedMonth, format: .dateTime.month(.wide).year())
                     .font(.headline)
-                    .foregroundColor(.primary)
-                
                 Spacer()
-                
                 HStack(spacing: 20) {
                     Button(action: { changeMonth(by: -1) }) {
                         Image(systemName: "chevron.left")
@@ -172,7 +194,6 @@ struct HabitCalendarView: View {
                             .background(Color(.systemGray6))
                             .clipShape(Circle())
                     }
-                    
                     Button(action: { changeMonth(by: 1) }) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
@@ -202,8 +223,7 @@ struct HabitCalendarView: View {
                     if let date = date {
                         CalendarDayCell(date: date, habit: habit)
                     } else {
-                        Color.clear
-                            .frame(height: 32)
+                        Color.clear.frame(height: 32)
                     }
                 }
             }
@@ -214,9 +234,7 @@ struct HabitCalendarView: View {
     
     private func changeMonth(by value: Int) {
         if let newMonth = calendar.date(byAdding: .month, value: value, to: selectedMonth) {
-            withAnimation {
-                selectedMonth = newMonth
-            }
+            withAnimation { selectedMonth = newMonth }
         }
     }
     
@@ -225,20 +243,15 @@ struct HabitCalendarView: View {
               let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthInterval.start)) else {
             return []
         }
-        
         let range = calendar.range(of: .day, in: .month, for: firstDayOfMonth)!
         let firstWeekday = calendar.component(.weekday, from: firstDayOfMonth)
-    
         let offset = (firstWeekday + 5) % 7
-        
         var days: [Date?] = Array(repeating: nil, count: offset)
-        
         for day in 0..<range.count {
             if let date = calendar.date(byAdding: .day, value: day, to: firstDayOfMonth) {
                 days.append(date)
             }
         }
-        
         return days
     }
 }
@@ -246,44 +259,31 @@ struct HabitCalendarView: View {
 struct CalendarDayCell: View {
     let date: Date
     let habit: Habit
-    
-    private var isToday: Bool {
-        Calendar.current.isDateInToday(date)
-    }
-    
-    private var isCompleted: Bool {
-        habit.completionDates.contains { Calendar.current.isDate($0, inSameDayAs: date) }
-    }
+    private var isToday: Bool { Calendar.current.isDateInToday(date) }
+    private var isCompleted: Bool { habit.completionDates.contains { Calendar.current.isDate($0, inSameDayAs: date) } }
     
     var body: some View {
-        VStack(spacing: 4) {
-            ZStack {
+        ZStack {
+            Circle()
+                .fill(isCompleted ? habit.category.color : Color.clear)
+                .frame(width: 32, height: 32)
+            if isToday && !isCompleted {
                 Circle()
-                    .fill(isCompleted ? habit.category.color : Color.clear)
+                    .stroke(habit.category.color, lineWidth: 2)
                     .frame(width: 32, height: 32)
-                
-                if isToday && !isCompleted {
-                    Circle()
-                        .stroke(habit.category.color, lineWidth: 2)
-                        .frame(width: 32, height: 32)
-                }
-                
-                Text("\(Calendar.current.component(.day, from: date))")
-                    .font(.system(size: 14, weight: isToday ? .bold : .medium))
-                    .foregroundColor(isCompleted ? .white : (isToday ? habit.category.color : .primary))
             }
+            Text("\(Calendar.current.component(.day, from: date))")
+                .font(.system(size: 14, weight: isToday ? .bold : .medium))
+                .foregroundColor(isCompleted ? .white : (isToday ? habit.category.color : .primary))
         }
         .frame(height: 32)
     }
 }
 
-// MARK: - Statistic View
-
 struct StatisticView: View {
     let value: String
     let label: String
     let color: Color
-    
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
