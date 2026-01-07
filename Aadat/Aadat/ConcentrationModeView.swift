@@ -8,6 +8,7 @@ struct ConcentrationModeView: View {
     var body: some View {
         NavigationView {
             VStack {
+                // MARK: Animated Clock Display
                 ZStack {
                     Circle()
                         .stroke(Color(.systemGray5), lineWidth: 24)
@@ -23,20 +24,35 @@ struct ConcentrationModeView: View {
                         .frame(width: 280, height: 280)
                         .animation(.linear(duration: 0.1), value: viewModel.timeRemaining)
                     
-                    VStack {
+                    VStack(spacing: 8) {
                         Text(viewModel.timeString)
                             .font(.system(size: 72, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                         
-                        Text(viewModel.isRunning ? "Focus Session" : (viewModel.duration > 0 ? "Paused" : "Set Duration"))
-                            .font(.headline)
-                            .foregroundColor(viewModel.isRunning ? .blue : .gray)
+                        if viewModel.duration > 0 && !viewModel.isRunning && !viewModel.isFaceDown {
+                            VStack {
+                                Image(systemName: "iphone.smartrectangle.rotate.right")
+                                    .font(.title)
+                                    .foregroundColor(.orange)
+                                    .padding(.top, 5)
+                                Text("Flip phone to start")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.orange)
+                            }
+                            .transition(.opacity)
+                        } else {
+                            Text(viewModel.isRunning ? "Focus Session" : (viewModel.duration > 0 ? "Paused" : "Set Duration"))
+                                .font(.headline)
+                                .foregroundColor(viewModel.isRunning ? .blue : .gray)
+                        }
                     }
                 }
                 .padding(.top, 50)
                 
                 Spacer()
                 
+                // MARK: Duration Options
                 VStack(spacing: 20) {
                     Text("Select Focus Time")
                         .font(.title3)

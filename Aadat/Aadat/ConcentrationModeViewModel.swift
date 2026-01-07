@@ -1,18 +1,14 @@
-//
-//  ConcentrationModeViewModel.swift
-//  Aadat
-//
-//  Created by Rishu Bajpai on 04/12/25.
-//
 import Foundation
 import Combine
 import UIKit
 import UserNotifications
 import ActivityKit
+import CoreMotion
 
 class ConcentrationModeViewModel: ObservableObject {
     
     @Published private var model = ConcentrationModeModel()
+    @Published var isFaceDown = false
     
     var timeRemaining: TimeInterval { model.timeRemaining }
     var duration: TimeInterval { model.duration }
@@ -21,6 +17,7 @@ class ConcentrationModeViewModel: ObservableObject {
     private var timer: Timer?
     private var targetEndTime: Date?
     private let notificationId = "focus_timer_end"
+    private let motionManager = CMMotionManager()
     private var currentActivity: Activity<FocusTimerAttributes>?
     
     var progress: Double {
@@ -33,6 +30,42 @@ class ConcentrationModeViewModel: ObservableObject {
         formatter.unitsStyle = .positional
         formatter.zeroFormattingBehavior = .pad
         return formatter.string(from: timeRemaining) ?? "00:00"
+    }
+    
+    init() {
+        startMonitoringMotion()
+    }
+    
+    // MARK: - Motion Detection (Flip logic)
+    
+    private func startMonitoringMotion() {
+        guard motionManager.isDeviceMotionAvailable else { return }
+        
+        motionManager.deviceMotionUpdateInterval = 0.5
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] (motion, error) in
+            guard let self = self, let motion = motion else { return }
+            
+            let isDown = motion.gravity.z > 0.9
+            
+            if isDown != self.isFaceDown {
+                self.isFaceDown = isDown
+                self.handleOrientationChange()
+            }
+        }
+    }
+    
+    private func handleOrientationChange() {
+        guard duration > 0 else { return }
+        
+        if isFaceDown {
+            if !isRunning && timeRemaining > 0 {
+                startTimer(duration: duration, remaining: timeRemaining)
+            }
+        } else {
+            if isRunning {
+                pauseTimer()
+            }
+        }
     }
     
     // MARK: - Haptic Feedback
@@ -49,23 +82,17 @@ class ConcentrationModeViewModel: ObservableObject {
         generator.notificationOccurred(.success)
     }
     
-    // MARK: - Live Activities (Lock Screen)
+    // MARK: - Live Activities
     
     private func startLiveActivity(duration: TimeInterval) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         
         for activity in Activity<FocusTimerAttributes>.activities {
-            Task {
-                await activity.end(dismissalPolicy: .immediate)
-            }
+            Task { await activity.end(dismissalPolicy: .immediate) }
         }
         
-        let attributes = FocusTimerAttributes(
-            totalDuration: duration,
-            sessionName: "Focus Session"
-        )
-        
-        let targetDate = Date().addingTimeInterval(duration)
+        let attributes = FocusTimerAttributes(totalDuration: duration, sessionName: "Focus Session")
+        let targetDate = Date().addingTimeInterval(timeRemaining)
         let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: targetDate)
         
         do {
@@ -83,48 +110,20 @@ class ConcentrationModeViewModel: ObservableObject {
     private func endLiveActivity() {
         if let activity = currentActivity {
             let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: Date())
-            Task {
-                await activity.end(using: finalState, dismissalPolicy: .immediate)
-            }
+            Task { await activity.end(using: finalState, dismissalPolicy: .immediate) }
             self.currentActivity = nil
         }
         
         for activity in Activity<FocusTimerAttributes>.activities {
-            Task {
-                await activity.end(dismissalPolicy: .immediate)
-            }
+            Task { await activity.end(dismissalPolicy: .immediate) }
         }
-    }
-    
-    // MARK: - Local Notifications
-    
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
-    }
-    
-    private func scheduleNotification(seconds: TimeInterval) {
-        guard seconds > 0 else { return }
-        let content = UNMutableNotificationContent()
-        content.title = "Focus Session Complete!"
-        content.body = "You successfully focused for \(Int(model.duration / 60)) minutes."
-        content.sound = .default
-        content.interruptionLevel = .timeSensitive
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
-        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationId])
-        UNUserNotificationCenter.current().add(request)
-    }
-    
-    private func cancelNotification() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationId])
     }
     
     // MARK: - Lifecycle Handling
     
     func appDidBecomeActive() {
-        guard isRunning, let endTime = targetEndTime else { return }
+        // If it was running and flipped, sync. If lifted, it should remain paused.
+        guard isRunning, isFaceDown, let endTime = targetEndTime else { return }
         let remaining = endTime.timeIntervalSinceNow
         
         if remaining <= 0 {
@@ -141,31 +140,29 @@ class ConcentrationModeViewModel: ObservableObject {
     
     func setDurationAndToggle(minutes: Int) {
         playSelectionHaptic()
-        requestNotificationPermission()
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
         
         let newDuration = TimeInterval(minutes * 60)
         
-        if isRunning {
-            if newDuration == duration {
-                pauseTimer()
-                return
-            } else {
-                stopTimer()
-            }
+        stopTimer()
+        model.duration = newDuration
+        model.timeRemaining = newDuration
+        
+        if isFaceDown {
+            startTimer(duration: newDuration, remaining: newDuration)
         }
-        startTimer(duration: newDuration)
     }
     
-    private func startTimer(duration: TimeInterval) {
-        model.duration = duration
-        model.timeRemaining = duration
+    private func startTimer(duration: TimeInterval, remaining: TimeInterval) {
         model.isRunning = true
-        targetEndTime = Date().addingTimeInterval(duration)
+        targetEndTime = Date().addingTimeInterval(remaining)
         
-        scheduleNotification(seconds: duration)
+        scheduleNotification(seconds: remaining)
         startLiveActivity(duration: duration)
-        
         startTicker()
+        
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
     }
     
     private func startTicker() {
@@ -202,9 +199,27 @@ class ConcentrationModeViewModel: ObservableObject {
         targetEndTime = nil
         cancelNotification()
         endLiveActivity()
+        
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+    
+    private func scheduleNotification(seconds: TimeInterval) {
+        let content = UNMutableNotificationContent()
+        content.title = "Focus Session Complete!"
+        content.body = "Well done!"
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+    
+    private func cancelNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationId])
     }
     
     deinit {
+        motionManager.stopDeviceMotionUpdates()
         timer?.invalidate()
     }
 }
