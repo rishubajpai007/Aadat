@@ -13,6 +13,14 @@ class ConcentrationModeViewModel: ObservableObject {
     var timeRemaining: TimeInterval { model.timeRemaining }
     var duration: TimeInterval { model.duration }
     var isRunning: Bool { model.isRunning }
+    var isStrictMode: Bool {
+        get { model.isStrictMode }
+        set {
+            model.isStrictMode = newValue
+            if !newValue && isRunning {
+            }
+        }
+    }
     
     private var timer: Timer?
     private var targetEndTime: Date?
@@ -36,7 +44,7 @@ class ConcentrationModeViewModel: ObservableObject {
         startMonitoringMotion()
     }
     
-    // MARK: - Motion Detection (Flip logic)
+    // MARK: - Motion Detection
     
     private func startMonitoringMotion() {
         guard motionManager.isDeviceMotionAvailable else { return }
@@ -49,7 +57,9 @@ class ConcentrationModeViewModel: ObservableObject {
             
             if isDown != self.isFaceDown {
                 self.isFaceDown = isDown
-                self.handleOrientationChange()
+                if self.isStrictMode {
+                    self.handleOrientationChange()
+                }
             }
         }
     }
@@ -68,75 +78,23 @@ class ConcentrationModeViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Haptic Feedback
+    // MARK: - Actions
     
-    func playSelectionHaptic() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.prepare()
-        generator.impactOccurred()
+    func toggleStrictMode() {
+        playSelectionHaptic()
+        isStrictMode.toggle()
     }
     
-    private func playSuccessHaptic() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(.success)
-    }
-    
-    // MARK: - Live Activities
-    
-    private func startLiveActivity(duration: TimeInterval) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        
-        for activity in Activity<FocusTimerAttributes>.activities {
-            Task { await activity.end(dismissalPolicy: .immediate) }
-        }
-        
-        let attributes = FocusTimerAttributes(totalDuration: duration, sessionName: "Focus Session")
-        let targetDate = Date().addingTimeInterval(timeRemaining)
-        let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: targetDate)
-        
-        do {
-            let activity = try Activity<FocusTimerAttributes>.request(
-                attributes: attributes,
-                contentState: contentState,
-                pushType: nil
-            )
-            self.currentActivity = activity
-        } catch {
-            print("Error starting Live Activity: \(error.localizedDescription)")
-        }
-    }
-    
-    private func endLiveActivity() {
-        if let activity = currentActivity {
-            let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: Date())
-            Task { await activity.end(using: finalState, dismissalPolicy: .immediate) }
-            self.currentActivity = nil
-        }
-        
-        for activity in Activity<FocusTimerAttributes>.activities {
-            Task { await activity.end(dismissalPolicy: .immediate) }
-        }
-    }
-    
-    // MARK: - Lifecycle Handling
-    
-    func appDidBecomeActive() {
-        // If it was running and flipped, sync. If lifted, it should remain paused.
-        guard isRunning, isFaceDown, let endTime = targetEndTime else { return }
-        let remaining = endTime.timeIntervalSinceNow
-        
-        if remaining <= 0 {
-            model.timeRemaining = 0
-            stopTimer()
-            playSuccessHaptic()
+    func toggleManualTimer() {
+        playSelectionHaptic()
+        if isRunning {
+            pauseTimer()
         } else {
-            model.timeRemaining = remaining
-            startTicker()
+            if duration > 0 {
+                startTimer(duration: duration, remaining: timeRemaining)
+            }
         }
     }
-    
-    // MARK: - Timer Control
     
     func setDurationAndToggle(minutes: Int) {
         playSelectionHaptic()
@@ -148,12 +106,12 @@ class ConcentrationModeViewModel: ObservableObject {
         model.duration = newDuration
         model.timeRemaining = newDuration
         
-        if isFaceDown {
+        if isStrictMode && isFaceDown {
             startTimer(duration: newDuration, remaining: newDuration)
         }
     }
     
-    private func startTimer(duration: TimeInterval, remaining: TimeInterval) {
+    func startTimer(duration: TimeInterval, remaining: TimeInterval) {
         model.isRunning = true
         targetEndTime = Date().addingTimeInterval(remaining)
         
@@ -164,6 +122,31 @@ class ConcentrationModeViewModel: ObservableObject {
         let generator = UIImpactFeedbackGenerator(style: .heavy)
         generator.impactOccurred()
     }
+    
+    func pauseTimer() {
+        timer?.invalidate()
+        timer = nil
+        model.isRunning = false
+        targetEndTime = nil
+        cancelNotification()
+        endLiveActivity()
+        
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+    
+    func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+        model.isRunning = false
+        model.timeRemaining = 0
+        model.duration = 0
+        targetEndTime = nil
+        cancelNotification()
+        endLiveActivity()
+    }
+    
+    // MARK: - Helpers
     
     private func startTicker() {
         timer?.invalidate()
@@ -181,27 +164,33 @@ class ConcentrationModeViewModel: ObservableObject {
         }
     }
     
-    func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-        model.isRunning = false
-        model.timeRemaining = 0
-        model.duration = 0
-        targetEndTime = nil
-        cancelNotification()
-        endLiveActivity()
+    func playSelectionHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
     
-    func pauseTimer() {
-        timer?.invalidate()
-        timer = nil
-        model.isRunning = false
-        targetEndTime = nil
-        cancelNotification()
-        endLiveActivity()
+    private func playSuccessHaptic() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+    
+    func appDidBecomeActive() {
+        guard isRunning, let endTime = targetEndTime else { return }
         
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        if isStrictMode && !isFaceDown {
+            pauseTimer()
+            return
+        }
+        
+        let remaining = endTime.timeIntervalSinceNow
+        if remaining <= 0 {
+            model.timeRemaining = 0
+            stopTimer()
+            playSuccessHaptic()
+        } else {
+            model.timeRemaining = remaining
+            startTicker()
+        }
     }
     
     private func scheduleNotification(seconds: TimeInterval) {
@@ -218,8 +207,16 @@ class ConcentrationModeViewModel: ObservableObject {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationId])
     }
     
-    deinit {
-        motionManager.stopDeviceMotionUpdates()
-        timer?.invalidate()
+    private func startLiveActivity(duration: TimeInterval) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let attributes = FocusTimerAttributes(totalDuration: duration, sessionName: "Focus Session")
+        let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: targetEndTime ?? Date())
+        do {
+            self.currentActivity = try Activity.request(attributes: attributes, contentState: contentState)
+        } catch { print(error) }
+    }
+    
+    private func endLiveActivity() {
+        Task { await currentActivity?.end(dismissalPolicy: .immediate) }
     }
 }

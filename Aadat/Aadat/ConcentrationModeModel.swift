@@ -1,19 +1,14 @@
-//
-//  ConcentrationModeModel.swift
-//  Aadat
-//
-//  Created by Rishu Bajpai on 04/12/25.
-//
 import Foundation
 
 struct ConcentrationModeModel {
     var timeRemaining: TimeInterval = 0
     var duration: TimeInterval = 0
     var isRunning = false
+    var isStrictMode = true
 }
 
 enum FocusDuration: Int, CaseIterable {
-    case fifteen = 1
+    case fifteen = 15
     case thirty = 30
     case fortyFive = 45
     case sixty = 60
