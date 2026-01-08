@@ -38,100 +38,120 @@ struct GlobalHeatmapsView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    VStack(spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Global Mastery")
-                                    .font(.headline)
-                                Text("Consolidated insights across all habits")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                        }
+            ZStack {
+                BackgroundLayer()
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 28) {
                         
-                        HStack(spacing: 12) {
-                            GlobalStatCard(title: "Completions", value: "\(totalAnnualCompletions)", icon: "checkmark.circle.fill", color: .blue)
-                            GlobalStatCard(title: "Master Streak", value: "\(masterStreak)", icon: "flame.fill", color: .orange)
-                            GlobalStatCard(title: "Avg. Success", value: "\(averageSuccessRate)%", icon: "chart.bar.fill", color: .purple)
-                        }
-                    }
-                    .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            FilterChip(title: "All", isSelected: selectedCategory == nil) {
-                                selectedCategory = nil
+                        // 1. Global Dashboard Header (Glassmorphic)
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("GLOBAL MASTERY")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(.secondary)
+                                    .tracking(1.5)
+                                
+                                Text("Consolidated Insights")
+                                    .font(.system(.title2, design: .rounded))
+                                    .fontWeight(.bold)
                             }
                             
-                            ForEach(HabitCategory.allCases, id: \.self) { category in
-                                FilterChip(title: "\(category.icon) \(category.rawValue)", isSelected: selectedCategory == category) {
-                                    selectedCategory = category
-                                }
+                            HStack(spacing: 12) {
+                                GlobalStatCard(title: "Completions", value: "\(totalAnnualCompletions)", icon: "checkmark.circle.fill", color: .blue)
+                                GlobalStatCard(title: "Master Streak", value: "\(masterStreak)", icon: "flame.fill", color: .orange)
+                                GlobalStatCard(title: "Avg. Success", value: "\(averageSuccessRate)%", icon: "chart.bar.fill", color: .purple)
                             }
                         }
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                )
+                        )
                         .padding(.horizontal)
-                    }
-                    
-                    if filteredHabits.isEmpty {
-                        ContentUnavailableView("No Data", systemImage: "chart.bar.xaxis", description: Text("No habits found in this category."))
-                            .padding(.top, 40)
-                    } else {
-                        LazyVStack(spacing: 24) {
-                            ForEach(filteredHabits) { habit in
-                                NavigationLink(destination: HabitDetailView(habit: habit)) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(habit.name)
-                                                    .font(.headline)
-                                                    .foregroundColor(.primary)
-                                                Text("\(habit.category.icon) \(habit.category.rawValue)")
-                                                    .font(.caption2)
-                                                    .fontWeight(.bold)
-                                                    .padding(.horizontal, 6)
-                                                    .padding(.vertical, 2)
-                                                    .background(habit.category.color.opacity(0.1))
-                                                    .foregroundColor(habit.category.color)
-                                                    .cornerRadius(4)
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            VStack(alignment: .trailing, spacing: 2) {
-                                                Text("\(habit.currentStreak) day streak")
-                                                    .font(.caption)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.orange)
-                                                
-                                                let days = Calendar.current.dateComponents([.day], from: habit.creationDate, to: Date()).day ?? 0
-                                                let rate = Int((Double(habit.completionDates.count) / Double(max(1, days + 1))) * 100)
-                                                Text("\(rate)% success")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-                                        .padding(.horizontal)
-                                        
-                                        HabitHeatmapView(habit: habit)
-                                            .frame(height: 140)
+                        .padding(.top, 10)
+                        
+                        // 2. Category Filter Bar
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                FilterChip(title: "All", isSelected: selectedCategory == nil) {
+                                    selectedCategory = nil
+                                }
+                                
+                                ForEach(HabitCategory.allCases, id: \.self) { category in
+                                    FilterChip(title: "\(category.icon) \(category.rawValue)", isSelected: selectedCategory == category) {
+                                        selectedCategory = category
                                     }
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
+                            .padding(.horizontal)
                         }
-                        .padding(.bottom, 20)
+                        
+                        // 3. Heatmap List
+                        if filteredHabits.isEmpty {
+                            VStack(spacing: 20) {
+                                Image(systemName: "chart.bar.xaxis")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.secondary.opacity(0.4))
+                                    .padding(.top, 40)
+                                Text("No habits found")
+                                    .font(.system(.headline, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            LazyVStack(spacing: 32) {
+                                ForEach(filteredHabits) { habit in
+                                    NavigationLink(destination: HabitDetailView(habit: habit)) {
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(habit.name)
+                                                        .font(.system(.headline, design: .rounded))
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    Text("\(habit.category.icon) \(habit.category.rawValue)")
+                                                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 4)
+                                                        .background(habit.category.color.opacity(0.1))
+                                                        .foregroundColor(habit.category.color)
+                                                        .clipShape(Capsule())
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                VStack(alignment: .trailing, spacing: 2) {
+                                                    Text("\(habit.currentStreak) day streak")
+                                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                                        .foregroundColor(.orange)
+                                                    
+                                                    let days = Calendar.current.dateComponents([.day], from: habit.creationDate, to: Date()).day ?? 0
+                                                    let rate = Int((Double(habit.completionDates.count) / Double(max(1, days + 1))) * 100)
+                                                    Text("\(rate)% consistency")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            .padding(.horizontal, 24)
+                                            
+                                            HabitHeatmapView(habit: habit)
+                                                .padding(.horizontal, 10)
+                                        }
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            .padding(.bottom, 30)
+                        }
                     }
                 }
-                .padding(.vertical)
             }
-            .navigationTitle("Heatmap Overview")
-            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle("Global Insights")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -148,20 +168,21 @@ struct GlobalStatCard: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .foregroundColor(color)
-                .font(.subheadline)
+                .font(.system(size: 14))
             
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
             
-            Text(title)
-                .font(.system(size: 9, weight: .semibold))
+            Text(title.uppercased())
+                .font(.system(size: 8, weight: .black))
                 .foregroundColor(.secondary)
-                .textCase(.uppercase)
+                .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Color(UIColor.tertiarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(.vertical, 14)
+        .background(Color.primary.opacity(0.03))
+        .cornerRadius(18)
     }
 }
 
@@ -173,16 +194,23 @@ struct FilterChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.blue : Color(UIColor.secondarySystemGroupedBackground))
+                .padding(.vertical, 10)
+                .background(
+                    isSelected ?
+                    Color.blue :
+                    Color.primary.opacity(0.05)
+                )
                 .foregroundColor(isSelected ? .white : .primary)
-                .cornerRadius(20)
+                .clipShape(Capsule())
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(isSelected ? Color.clear : Color.gray.opacity(0.2), lineWidth: 1)
+                    Capsule()
+                        .stroke(isSelected ? Color.clear : Color.white.opacity(0.3), lineWidth: 1)
                 )
         }
+        .buttonStyle(.plain)
     }
 }
+
+

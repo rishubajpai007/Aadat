@@ -7,90 +7,138 @@ struct ConcentrationModeView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                // MARK: Animated Clock Display
-                ZStack {
-                    Circle()
-                        .stroke(Color(.systemGray5), lineWidth: 24)
-                        .frame(width: 280, height: 280)
-
-                    Circle()
-                        .trim(from: 0, to: 1.0 - viewModel.progress)
-                        .stroke(
-                            viewModel.isRunning ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5),
-                            style: StrokeStyle(lineWidth: 24, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 280, height: 280)
-                        .animation(.linear(duration: 0.1), value: viewModel.timeRemaining)
-                    
-                    VStack(spacing: 8) {
-                        Text(viewModel.timeString)
-                            .font(.system(size: 72, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
+            ZStack {
+                // 1. Consistent Background Layer
+                BackgroundLayer()
+                
+                VStack(spacing: 0) {
+                    // 2. Custom Navigation Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("DEEP WORK")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .tracking(1.5)
                         
-                        if viewModel.duration > 0 && !viewModel.isRunning && !viewModel.isFaceDown {
-                            VStack {
-                                Image(systemName: "iphone.smartrectangle.rotate.right")
-                                    .font(.title)
-                                    .foregroundColor(.orange)
-                                    .padding(.top, 5)
-                                Text("Flip phone to start")
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.orange)
-                            }
-                            .transition(.opacity)
-                        } else {
-                            Text(viewModel.isRunning ? "Focus Session" : (viewModel.duration > 0 ? "Paused" : "Set Duration"))
-                                .font(.headline)
-                                .foregroundColor(viewModel.isRunning ? .blue : .gray)
-                        }
+                        Text("Concentration")
+                            .font(.system(.title, design: .rounded))
+                            .fontWeight(.bold)
                     }
-                }
-                .padding(.top, 50)
-                
-                Spacer()
-                
-                // MARK: Duration Options
-                VStack(spacing: 20) {
-                    Text("Select Focus Time")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 12) {
-                        ForEach(FocusDuration.allCases, id: \.self) { durationCase in
-                            DurationButton(
-                                minutes: durationCase.minutes,
-                                viewModel: viewModel
-                            )
-                        }
-                    }
-                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
                     
-                    Button(action: {
-                        viewModel.playSelectionHaptic()
-                        withAnimation {
-                            viewModel.stopTimer()
+                    Spacer()
+
+                    // 3. Interactive Focus Ring
+                    ZStack {
+                        Circle()
+                            .fill(viewModel.isRunning ? Color.blue.opacity(0.1) : Color.clear)
+                            .blur(radius: 40)
+                            .frame(width: 260, height: 260)
+
+                        Circle()
+                            .stroke(Color.primary.opacity(0.05), lineWidth: 20)
+                            .frame(width: 280, height: 280)
+
+                        Circle()
+                            .trim(from: 0, to: 1.0 - viewModel.progress)
+                            .stroke(
+                                LinearGradient(
+                                    colors: viewModel.isRunning ? [.blue, .cyan] : [.gray.opacity(0.3), .gray.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 20, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 280, height: 280)
+                            .animation(.linear(duration: 0.1), value: viewModel.timeRemaining)
+                        
+                        VStack(spacing: 8) {
+                            Text(viewModel.timeString)
+                                .font(.system(size: 64, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundColor(.primary)
+                            
+                            if viewModel.duration > 0 && !viewModel.isRunning && !viewModel.isFaceDown {
+                                VStack(spacing: 6) {
+                                    Image(systemName: "iphone.smartrectangle.rotate.right")
+                                        .font(.title3)
+                                        .symbolEffect(.bounce,options: .repeat(.continuous))
+                                    Text("Flip to Focus")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(.orange)
+                                .transition(.opacity.combined(with: .scale))
+                            } else {
+                                Text(viewModel.isRunning ? "Focused" : (viewModel.duration > 0 ? "Paused" : "Set Timer"))
+                                    .font(.system(.subheadline, design: .rounded))
+                                    .fontWeight(.bold)
+                                    .foregroundColor(viewModel.isRunning ? .blue : .secondary)
+                                    .textCase(.uppercase)
+                                    .tracking(1.2)
+                            }
                         }
-                    }) {
-                        Text("Stop & Reset")
-                            .font(.headline)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(viewModel.duration > 0 ? Color.red.opacity(0.7) : Color(.systemGray4))
-                            .foregroundColor(.white)
-                            .cornerRadius(15)
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
                     }
-                    .padding(.horizontal)
-                    .disabled(viewModel.duration == 0)
+                    .padding(.vertical, 40)
+                    
+                    Spacer()
+                    
+                    // 4. Control Panel (Glassmorphic)
+                    VStack(spacing: 24) {
+                        Text("Session Duration")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .tracking(1.0)
+                        
+                        HStack(spacing: 12) {
+                            ForEach(FocusDuration.allCases, id: \.self) { durationCase in
+                                FocusDurationButton(
+                                    minutes: durationCase.minutes,
+                                    isSelected: TimeInterval(durationCase.minutes * 60) == viewModel.duration,
+                                    isRunning: viewModel.isRunning,
+                                    action: { viewModel.setDurationAndToggle(minutes: durationCase.minutes) }
+                                )
+                            }
+                        }
+                        
+                        Button(action: {
+                            viewModel.playSelectionHaptic()
+                            withAnimation(.spring()) {
+                                viewModel.stopTimer()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "stop.fill")
+                                Text("End Session")
+                            }
+                            .font(.system(.body, design: .rounded))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                Capsule()
+                                    .fill(viewModel.duration > 0 ? Color.red.opacity(0.8) : Color.gray.opacity(0.2))
+                            )
+                            .shadow(color: viewModel.duration > 0 ? Color.red.opacity(0.2) : Color.clear, radius: 10, y: 5)
+                        }
+                        .disabled(viewModel.duration == 0)
+                    }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 32, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 30)
                 }
-                .padding(.bottom, 40)
             }
-            .navigationTitle("Focus Mode")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarHidden(true)
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     viewModel.appDidBecomeActive()
@@ -100,24 +148,30 @@ struct ConcentrationModeView: View {
     }
 }
 
-struct DurationButton: View {
+// MARK: - Components
+
+struct FocusDurationButton: View {
     let minutes: Int
-    @ObservedObject var viewModel: ConcentrationModeViewModel
+    let isSelected: Bool
+    let isRunning: Bool
+    let action: () -> Void
     
     var body: some View {
-        let isSelected = TimeInterval(minutes * 60) == viewModel.duration && viewModel.duration > 0
-        
-        Button(action: {
-            viewModel.setDurationAndToggle(minutes: minutes)
-        }) {
-            Text("\(minutes) min")
-                .font(.headline)
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity, minHeight: 60)
-                .background(isSelected ? (viewModel.isRunning ? Color.blue : Color.orange) : Color(.systemGray5))
+        Button(action: action) {
+            Text("\(minutes)")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(isSelected ? (isRunning ? Color.blue : Color.orange) : Color.primary.opacity(0.03))
+                )
                 .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-                .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 3)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(isSelected ? Color.clear : Color.primary.opacity(0.05), lineWidth: 1)
+                )
         }
+        .buttonStyle(.plain)
     }
 }

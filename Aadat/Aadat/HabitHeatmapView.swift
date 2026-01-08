@@ -76,8 +76,15 @@ struct HabitHeatmapView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 8)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 5)
     }
     
     // MARK: - Logic Helpers

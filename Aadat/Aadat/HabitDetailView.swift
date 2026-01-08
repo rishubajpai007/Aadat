@@ -39,98 +39,112 @@ struct HabitDetailView: View {
     }
     
     var body: some View {
-        List {
-            Section {
-                HabitCalendarView(habit: habit, selectedMonth: $selectedMonth)
-                    .padding(.vertical, 8)
-            }
-            .listRowInsets(EdgeInsets())
+        ZStack {
+            // 1. Consistent Background Layer
+            BackgroundLayer()
             
-            Section {
-                let isTopStreak = habit.currentStreak > 0 && habit.currentStreak == habit.longestStreak
-                
-                HStack {
-                    StatisticView(
-                        value: "\(habit.currentStreak)\(isTopStreak ? " 🔥" : "")",
-                        label: "Current Streak",
-                        color: .orange
-                    )
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
                     
-                    Divider()
-                    
-                    StatisticView(
-                        value: "\(habit.longestStreak)\(isTopStreak ? " 🔥" : "")",
-                        label: "Longest Streak",
-                        color: habit.category.color
-                    )
-                }
-            }
-            .listRowSeparator(.hidden)
-            .padding(.vertical, 8)
-
-            Section(header: Text("Yearly Consistency")) {
-                HabitHeatmapView(habit: habit)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-            }
-            
-            Section(header: Text("Yearly Insights")) {
-                HStack(spacing: 0) {
-                    InsightItem(value: "\(completionsThisYear)", label: "Year", color: .indigo)
-                    
-                    Divider().frame(height: 35)
-                    
-                    InsightItem(value: "\(completionsThisMonth)", label: "Month", color: .blue)
-                    
-                    Divider().frame(height: 35)
-                    
-                    InsightItem(value: "\(completionsThisWeek)", label: "Week", color: .teal)
-                    
-                    Divider().frame(height: 35)
-                    
-                    InsightItem(value: "\(successPercentage)%", label: "Success", color: .purple)
-                }
-                .padding(.vertical, 16)
-            }
-            .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
-            
-            Section("Details") {
-                HStack {
-                    Circle()
-                        .fill(habit.category.color)
-                        .frame(width: 8, height: 8)
-                    Text("Category")
-                    Spacer()
-                    Text("\(habit.category.icon) \(habit.category.rawValue)")
-                        .foregroundColor(.secondary)
-                }
-                
-                if let reminder = habit.reminderTime {
-                    HStack {
-                        Image(systemName: "bell.fill")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                        Text("Reminder")
-                        Spacer()
-                        Text(reminder, style: .time)
+                    // 2. Interactive Calendar Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("COMPLETION HISTORY")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
                             .foregroundColor(.secondary)
+                            .tracking(1.5)
+                            .padding(.leading, 8)
+                        
+                        HabitCalendarView(habit: habit, selectedMonth: $selectedMonth)
                     }
+                    .padding(.top, 10)
+                    
+                    // 3. Quick Stats Card
+                    HStack(spacing: 16) {
+                        let isTopStreak = habit.currentStreak > 0 && habit.currentStreak == habit.longestStreak
+                        
+                        StatisticCard(
+                            value: "\(habit.currentStreak)",
+                            label: "Current",
+                            icon: "flame.fill",
+                            color: .orange,
+                            showBadge: isTopStreak
+                        )
+                        
+                        StatisticCard(
+                            value: "\(habit.longestStreak)",
+                            label: "Best",
+                            icon: "trophy.fill",
+                            color: habit.category.color,
+                            showBadge: false
+                        )
+                    }
+                    
+                    // 4. Yearly Consistency (Heatmap)
+                    HabitHeatmapView(habit: habit)
+                    
+                    // 5. Yearly Insights Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("PERFORMANCE INSIGHTS")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .tracking(1.5)
+                            .padding(.leading, 8)
+                        
+                        HStack(spacing: 0) {
+                            InsightItem(value: "\(completionsThisYear)", label: "Year", color: .indigo)
+                            Divider().frame(height: 30).padding(.horizontal, 4)
+                            InsightItem(value: "\(completionsThisMonth)", label: "Month", color: .blue)
+                            Divider().frame(height: 30).padding(.horizontal, 4)
+                            InsightItem(value: "\(completionsThisWeek)", label: "Week", color: .teal)
+                            Divider().frame(height: 30).padding(.horizontal, 4)
+                            InsightItem(value: "\(successPercentage)%", label: "Success", color: .purple)
+                        }
+                        .padding(.vertical, 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                    }
+                    
+                    // 6. Action Buttons
+                    VStack(spacing: 12) {
+                        Button {
+                            showingEditSheet = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "pencil")
+                                Text("Edit Habit Settings")
+                            }
+                            .font(.system(.body, design: .rounded))
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(.ultraThinMaterial))
+                        }
+                        
+                        Button(role: .destructive) {
+                            deleteHabit()
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash.fill")
+                                Text("Delete Habit")
+                            }
+                            .font(.system(.body, design: .rounded))
+                            .fontWeight(.bold)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(Color.red.opacity(0.1)))
+                        }
+                    }
+                    .padding(.top, 8)
                 }
-                
-                HStack {
-                    Image(systemName: "calendar")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("Created")
-                    Spacer()
-                    Text(habit.creationDate, style: .date)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Section {
-                Button("Edit Habit") { showingEditSheet = true }
-                Button("Delete Habit", role: .destructive) { deleteHabit() }
+                .padding(20)
             }
         }
         .navigationTitle(habit.name)
@@ -148,7 +162,54 @@ struct HabitDetailView: View {
     }
 }
 
-// MARK: - Insights Component
+// MARK: - Supporting Components
+
+struct StatisticCard: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+    let showBadge: Bool
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundColor(color)
+                Spacer()
+                if showBadge {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.yellow)
+                }
+            }
+            
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                Text("DAYS")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundColor(.secondary)
+            }
+            
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.secondary)
+                .tracking(1.0)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                )
+        )
+    }
+}
 
 struct InsightItem: View {
     let value: String
@@ -158,20 +219,17 @@ struct InsightItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(color)
             
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .black))
                 .foregroundColor(.secondary)
-                .textCase(.uppercase)
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
     }
 }
-
-// MARK: - Habit Calendar View (Remains same for grid logic)
 
 struct HabitCalendarView: View {
     let habit: Habit
@@ -184,32 +242,29 @@ struct HabitCalendarView: View {
         VStack(spacing: 20) {
             HStack {
                 Text(selectedMonth, format: .dateTime.month(.wide).year())
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                 Spacer()
-                HStack(spacing: 20) {
+                HStack(spacing: 12) {
                     Button(action: { changeMonth(by: -1) }) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .padding(8)
-                            .background(Color(.systemGray6))
-                            .clipShape(Circle())
+                            .background(Circle().fill(Color.primary.opacity(0.05)))
                     }
                     Button(action: { changeMonth(by: 1) }) {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .padding(8)
-                            .background(Color(.systemGray6))
-                            .clipShape(Circle())
+                            .background(Circle().fill(Color.primary.opacity(0.05)))
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 4)
             
             HStack {
                 ForEach(daysOfWeek, id: \.self) { day in
                     Text(day)
-                        .font(.caption2)
-                        .fontWeight(.bold)
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
                 }
@@ -218,7 +273,7 @@ struct HabitCalendarView: View {
             let days = generateDaysInMonth(for: selectedMonth)
             let columns = Array(repeating: GridItem(.flexible()), count: 7)
             
-            LazyVGrid(columns: columns, spacing: 15) {
+            LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(days, id: \.self) { date in
                     if let date = date {
                         CalendarDayCell(date: date, habit: habit)
@@ -228,13 +283,20 @@ struct HabitCalendarView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                )
+        )
     }
     
     private func changeMonth(by value: Int) {
         if let newMonth = calendar.date(byAdding: .month, value: value, to: selectedMonth) {
-            withAnimation { selectedMonth = newMonth }
+            withAnimation(.spring()) { selectedMonth = newMonth }
         }
     }
     
@@ -264,38 +326,21 @@ struct CalendarDayCell: View {
     
     var body: some View {
         ZStack {
-            Circle()
-                .fill(isCompleted ? habit.category.color : Color.clear)
-                .frame(width: 32, height: 32)
-            if isToday && !isCompleted {
+            if isCompleted {
+                Circle()
+                    .fill(habit.category.color)
+                    .frame(width: 30, height: 30)
+                    .transition(.scale.combined(with: .opacity))
+            } else if isToday {
                 Circle()
                     .stroke(habit.category.color, lineWidth: 2)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
             }
+            
             Text("\(Calendar.current.component(.day, from: date))")
-                .font(.system(size: 14, weight: isToday ? .bold : .medium))
+                .font(.system(size: 13, weight: isToday || isCompleted ? .bold : .medium, design: .rounded))
                 .foregroundColor(isCompleted ? .white : (isToday ? habit.category.color : .primary))
         }
         .frame(height: 32)
-    }
-}
-
-struct StatisticView: View {
-    let value: String
-    let label: String
-    let color: Color
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
-                .foregroundColor(color)
-            Text(label)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
     }
 }
