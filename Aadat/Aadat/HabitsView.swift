@@ -146,6 +146,19 @@ struct BackgroundLayer: View {
 struct DashboardCard: View {
     let completionRate: Double
     
+    // Dynamic message logic to provide context-aware feedback
+    private var dashboardMessage: String {
+        if completionRate == 0 {
+            return "Ready to start your first habit? Let's go! 🚀"
+        } else if completionRate < 0.5 {
+            return "Great start! Keep that momentum building. 🔥"
+        } else if completionRate < 1.0 {
+            return "You're more than halfway there! Almost done. 💪"
+        } else {
+            return "Perfect day! You've crushed every goal. 🎉"
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
             HStack(spacing: 20) {
@@ -159,6 +172,7 @@ struct DashboardCard: View {
                             style: StrokeStyle(lineWidth: 10, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
+                        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: completionRate)
                     
                     Text("\(Int(completionRate * 100))%")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -168,7 +182,7 @@ struct DashboardCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Daily Mastery")
                         .font(.headline)
-                    Text(completionRate == 1.0 ? "Perfect day! You've done it all. 🎉" : "Keep going, you're doing great!")
+                    Text(dashboardMessage)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -195,6 +209,7 @@ struct DashboardCard: View {
                         Capsule()
                             .fill(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing))
                             .frame(width: geo.size.width * completionRate, height: 8)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: completionRate)
                     }
                 }
                 .frame(height: 8)

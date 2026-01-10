@@ -39,7 +39,7 @@ enum HabitCategory: String, Codable, CaseIterable {
         case .social: return .cyan
         case .fun: return .pink
         case .outdoor: return .teal
-        case .other: return .gray
+        case .other: return .brown
         }
     }
 }
