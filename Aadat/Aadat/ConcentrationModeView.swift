@@ -178,8 +178,8 @@ struct ConcentrationModeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onChange(of: scenePhase) { newPhase in
-                if newPhase == .active {
+            .onChange(of: scenePhase) {
+                if scenePhase == .active {
                     viewModel.appDidBecomeActive()
                 }
             }

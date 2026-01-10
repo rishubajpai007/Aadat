@@ -141,7 +141,7 @@ struct AddHabitView: View {
                                     }
                                 }
                                 .padding(20)
-                                .onChange(of: isReminderEnabled) { newValue in
+                                .onChange(of: isReminderEnabled) { newValue, _ in
                                     if newValue {
                                         viewModel.requestNotificationPermissions()
                                     }

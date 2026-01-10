@@ -210,13 +210,18 @@ class ConcentrationModeViewModel: ObservableObject {
     private func startLiveActivity(duration: TimeInterval) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = FocusTimerAttributes(totalDuration: duration, sessionName: "Focus Session")
-        let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: targetEndTime ?? Date())
-        do {
-            self.currentActivity = try Activity.request(attributes: attributes, contentState: contentState)
-        } catch { print(error) }
+        let endTime = targetEndTime ?? Date()
+        let contentState = FocusTimerAttributes.ContentState(estimatedEndTime: endTime)
+        let activityContent = ActivityContent(state: contentState, staleDate: endTime)
+        self.currentActivity = try? Activity.request(attributes: attributes, content: activityContent)
     }
     
     private func endLiveActivity() {
-        Task { await currentActivity?.end(dismissalPolicy: .immediate) }
+        let finalEndTime = targetEndTime ?? Date()
+        let finalState = FocusTimerAttributes.ContentState(estimatedEndTime: finalEndTime)
+        let finalContent = ActivityContent(state: finalState, staleDate: finalEndTime)
+        Task {
+            await currentActivity?.end(finalContent, dismissalPolicy: .immediate)
+        }
     }
 }
