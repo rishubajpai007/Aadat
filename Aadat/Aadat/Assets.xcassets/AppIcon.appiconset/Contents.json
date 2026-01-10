@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "final icon 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "Gemini_Generated_Image_ijjugzijjugzijju.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "Gemini_Generated_Image_sigz6usigz6usigz.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"

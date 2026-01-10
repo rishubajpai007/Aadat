@@ -53,26 +53,6 @@ struct HabitHeatmapView: View {
                     }
                 }
             }
-            
-            HStack(spacing: 12) {
-                Spacer()
-                Text("Less")
-                    .font(.system(size: 8))
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 2) {
-                    ForEach(0..<4) { i in
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(habit.category.color.opacity(Double(i + 1) * 0.25))
-                            .frame(width: 8, height: 8)
-                    }
-                }
-                
-                Text("More")
-                    .font(.system(size: 8))
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 4)
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 8)
