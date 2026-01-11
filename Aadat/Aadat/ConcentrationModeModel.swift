@@ -1,10 +1,10 @@
 import Foundation
 
 struct ConcentrationModeModel {
-    var timeRemaining: TimeInterval = 0
-    var duration: TimeInterval = 0
+    var timeRemaining: TimeInterval = 15 * 60
+    var duration: TimeInterval = 15 * 60
     var isRunning = false
-    var isStrictMode = true
+    var isStrictMode = false
 }
 
 enum FocusDuration: Int, CaseIterable {

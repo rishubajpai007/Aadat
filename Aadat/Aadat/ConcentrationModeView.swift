@@ -70,7 +70,7 @@ struct ConcentrationModeView: View {
                                     .transition(.opacity.combined(with: .scale))
                                 } else {
                                     Button(action: viewModel.toggleManualTimer) {
-                                        Label("Start", systemImage: "play.fill")
+                                        Label(viewModel.timeRemaining == viewModel.duration ? "Start" : "Resume", systemImage: "play.fill")
                                             .font(.system(.subheadline, design: .rounded))
                                             .fontWeight(.bold)
                                             .foregroundColor(.blue)
@@ -110,6 +110,16 @@ struct ConcentrationModeView: View {
                             .labelsHidden()
                             .tint(.orange)
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                )
+                        )
                         .padding(.bottom, 4)
                         
                         Divider()
@@ -126,11 +136,11 @@ struct ConcentrationModeView: View {
                         }
                         
                         HStack(spacing: 12) {
-                            if !viewModel.isStrictMode && viewModel.duration > 0 {
+                            if !viewModel.isStrictMode {
                                 Button(action: viewModel.toggleManualTimer) {
                                     HStack {
                                         Image(systemName: viewModel.isRunning ? "pause.fill" : "play.fill")
-                                        Text(viewModel.isRunning ? "Pause" : "Resume")
+                                        Text(viewModel.isRunning ? "Pause" : (viewModel.timeRemaining == viewModel.duration ? "Start" : "Resume"))
                                     }
                                     .font(.system(.body, design: .rounded))
                                     .fontWeight(.bold)
@@ -149,7 +159,7 @@ struct ConcentrationModeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "stop.fill")
-                                    Text(viewModel.isStrictMode ? "End Session" : "Stop")
+                                    Text(viewModel.timeRemaining < viewModel.duration ? "End Session" : "Cancel")
                                 }
                                 .font(.system(.body, design: .rounded))
                                 .fontWeight(.bold)
@@ -158,21 +168,12 @@ struct ConcentrationModeView: View {
                                 .padding(.vertical, 16)
                                 .background(
                                     Capsule()
-                                        .fill(viewModel.duration > 0 ? (viewModel.isStrictMode ? Color.red.opacity(0.8) : Color.red.opacity(0.1)) : Color.gray.opacity(0.1))
+                                        .fill(viewModel.isStrictMode ? Color.red.opacity(0.8) : Color.red.opacity(0.1))
                                 )
                             }
-                            .disabled(viewModel.duration == 0)
                         }
                     }
                     .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-                    )
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                 }

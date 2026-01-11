@@ -40,7 +40,7 @@ struct HabitRowView: View {
             
             Spacer()
             
-            // 3. Modern Completion Toggle
+            // 3. Modern Completion Toggle (Unified Blue Color)
             Button {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
@@ -50,12 +50,12 @@ struct HabitRowView: View {
             } label: {
                 ZStack {
                     Circle()
-                        .stroke(isCompletedToday ? habit.category.color : Color(.systemGray4), lineWidth: 2)
+                        .stroke(isCompletedToday ? Color.blue : Color(.systemGray4), lineWidth: 2)
                         .frame(width: 32, height: 32)
                     
                     if isCompletedToday {
                         Circle()
-                            .fill(habit.category.color)
+                            .fill(Color.blue) 
                             .frame(width: 32, height: 32)
                         
                         Image(systemName: "checkmark")

@@ -91,12 +91,28 @@ struct HabitDetailView: View {
                             .padding(.leading, 8)
                         
                         HStack(spacing: 0) {
-                            InsightItem(value: "\(completionsThisYear)", label: "Year", color: .indigo)
+                            // Updated InsightItems to use success emoji for non-zero values
+                            InsightItem(
+                                value: completionsThisYear > 0 ? "\(completionsThisYear) ✨" : "0",
+                                label: "This Year",
+                                color: .indigo
+                            )
                             Divider().frame(height: 30).padding(.horizontal, 4)
-                            InsightItem(value: "\(completionsThisMonth)", label: "Month", color: .blue)
+                            
+                            InsightItem(
+                                value: completionsThisMonth > 0 ? "\(completionsThisMonth) ✨" : "0",
+                                label: "This Month",
+                                color: .blue
+                            )
                             Divider().frame(height: 30).padding(.horizontal, 4)
-                            InsightItem(value: "\(completionsThisWeek)", label: "Week", color: .teal)
+                            
+                            InsightItem(
+                                value: completionsThisWeek > 0 ? "\(completionsThisWeek) ✨" : "0",
+                                label: "This Week",
+                                color: .teal
+                            )
                             Divider().frame(height: 30).padding(.horizontal, 4)
+                            
                             InsightItem(value: "\(successPercentage)%", label: "Success", color: .purple)
                         }
                         .padding(.vertical, 24)
@@ -219,7 +235,7 @@ struct InsightItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(color)
             
             Text(label.uppercased())
