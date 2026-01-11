@@ -5,28 +5,28 @@ struct GlobalHeatmapsView: View {
     @EnvironmentObject var viewModel: HabitsViewModel
     @State private var selectedCategory: HabitCategory? = nil
     
-    // MARK: - Aggregate Stats
+    // MARK: - Filtered Aggregate Stats
     
     private var totalAnnualCompletions: Int {
         let currentYear = Calendar.current.component(.year, from: Date())
-        return viewModel.habits.reduce(0) { count, habit in
+        return filteredHabits.reduce(0) { count, habit in
             count + habit.completionDates.filter { Calendar.current.component(.year, from: $0) == currentYear }.count
         }
     }
     
     private var masterStreak: Int {
-        viewModel.habits.map { $0.currentStreak }.max() ?? 0
+        filteredHabits.map { $0.currentStreak }.max() ?? 0
     }
     
     private var averageSuccessRate: Int {
-        guard !viewModel.habits.isEmpty else { return 0 }
-        let totalRate = viewModel.habits.reduce(0) { sum, habit in
+        guard !filteredHabits.isEmpty else { return 0 }
+        let totalRate = filteredHabits.reduce(0) { sum, habit in
             let calendar = Calendar.current
             let days = calendar.dateComponents([.day], from: habit.creationDate, to: Date()).day ?? 0
             let rate = Double(habit.completionDates.count) / Double(max(1, days + 1))
             return sum + rate
         }
-        return Int((totalRate / Double(viewModel.habits.count)) * 100)
+        return Int((totalRate / Double(filteredHabits.count)) * 100)
     }
     
     private var filteredHabits: [Habit] {
@@ -47,10 +47,11 @@ struct GlobalHeatmapsView: View {
                         // 1. Global Dashboard Header (Glassmorphic)
                         VStack(alignment: .leading, spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("GLOBAL MASTERY")
+                                Text(selectedCategory == nil ? "GLOBAL MASTERY" : "\(selectedCategory!.rawValue.uppercased()) MASTERY")
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
                                     .foregroundColor(.secondary)
                                     .tracking(1.5)
+                                    .animation(.easeInOut, value: selectedCategory)
                                 
                                 Text("Consolidated Insights")
                                     .font(.system(.title2, design: .rounded))
@@ -62,6 +63,7 @@ struct GlobalHeatmapsView: View {
                                 GlobalStatCard(title: "Master Streak", value: "\(masterStreak)", icon: "flame.fill", color: .orange)
                                 GlobalStatCard(title: "Avg. Success", value: "\(averageSuccessRate)%", icon: "chart.bar.fill", color: .purple)
                             }
+                            .animation(.spring(), value: selectedCategory)
                         }
                         .padding(24)
                         .background(
@@ -79,12 +81,12 @@ struct GlobalHeatmapsView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 FilterChip(title: "All", isSelected: selectedCategory == nil) {
-                                    selectedCategory = nil
+                                    withAnimation(.spring()) { selectedCategory = nil }
                                 }
                                 
                                 ForEach(HabitCategory.allCases, id: \.self) { category in
                                     FilterChip(title: "\(category.icon) \(category.rawValue)", isSelected: selectedCategory == category) {
-                                        selectedCategory = category
+                                        withAnimation(.spring()) { selectedCategory = category }
                                     }
                                 }
                             }
@@ -150,7 +152,7 @@ struct GlobalHeatmapsView: View {
                     }
                 }
             }
-            .navigationTitle("Global Insights")
+            .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -173,6 +175,7 @@ struct GlobalStatCard: View {
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
+                .contentTransition(.numericText()) 
             
             Text(title.uppercased())
                 .font(.system(size: 8, weight: .black))
@@ -212,5 +215,3 @@ struct FilterChip: View {
         .buttonStyle(.plain)
     }
 }
-
-
