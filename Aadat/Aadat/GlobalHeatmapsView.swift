@@ -7,15 +7,44 @@ struct GlobalHeatmapsView: View {
     
     // MARK: - Filtered Aggregate Stats
     
+    private var earliestHabitDate: Date {
+        filteredHabits.map { $0.creationDate }.min() ?? Date()
+    }
+
+    private var totalDaysActive: Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: earliestHabitDate)
+        let end = calendar.startOfDay(for: Date())
+        let components = calendar.dateComponents([.day], from: start, to: end)
+        return (components.day ?? 0) + 1
+    }
+
     private var totalAnnualCompletions: Int {
-        let currentYear = Calendar.current.component(.year, from: Date())
+        let calendar = Calendar.current
+        let currentYear = calendar.component(.year, from: Date())
         return filteredHabits.reduce(0) { count, habit in
-            count + habit.completionDates.filter { Calendar.current.component(.year, from: $0) == currentYear }.count
+            count + habit.completionDates.filter { calendar.component(.year, from: $0) == currentYear }.count
         }
     }
     
-    private var masterStreak: Int {
-        filteredHabits.map { $0.currentStreak }.max() ?? 0
+    private var perfectDaysCount: Int {
+        guard !filteredHabits.isEmpty else { return 0 }
+        let calendar = Calendar.current
+        var count = 0
+        
+        for dayOffset in 0..<totalDaysActive {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: calendar.startOfDay(for: Date())) else { continue }
+            
+            let activeOnDate = filteredHabits.filter { calendar.startOfDay(for: $0.creationDate) <= date }
+            if activeOnDate.isEmpty { continue }
+            
+            let allDone = activeOnDate.allSatisfy { habit in
+                habit.completionDates.contains { calendar.isDate($0, inSameDayAs: date) }
+            }
+            
+            if allDone { count += 1 }
+        }
+        return count
     }
     
     private var averageSuccessRate: Int {
@@ -44,7 +73,7 @@ struct GlobalHeatmapsView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 28) {
                         
-                        // 1. Global Dashboard Header (Glassmorphic)
+                        // 1. Dashboard Header (Glassmorphic)
                         VStack(alignment: .leading, spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(selectedCategory == nil ? "GLOBAL MASTERY" : "\(selectedCategory!.rawValue.uppercased()) MASTERY")
@@ -53,14 +82,14 @@ struct GlobalHeatmapsView: View {
                                     .tracking(1.5)
                                     .animation(.easeInOut, value: selectedCategory)
                                 
-                                Text("Consolidated Insights")
+                                Text("Performance Insights")
                                     .font(.system(.title2, design: .rounded))
                                     .fontWeight(.bold)
                             }
                             
                             HStack(spacing: 12) {
                                 GlobalStatCard(title: "Completions", value: "\(totalAnnualCompletions)", icon: "checkmark.circle.fill", color: .blue)
-                                GlobalStatCard(title: "Master Streak", value: "\(masterStreak)", icon: "flame.fill", color: .orange)
+                                GlobalStatCard(title: "Perfect Days", value: "\(perfectDaysCount)", icon: "star.fill", color: .orange)
                                 GlobalStatCard(title: "Avg. Success", value: "\(averageSuccessRate)%", icon: "chart.bar.fill", color: .purple)
                             }
                             .animation(.spring(), value: selectedCategory)
@@ -127,7 +156,7 @@ struct GlobalHeatmapsView: View {
                                                 Spacer()
                                                 
                                                 VStack(alignment: .trailing, spacing: 2) {
-                                                    Text("\(habit.currentStreak) day streak")
+                                                    Text("\(habit.currentStreak)d streak")
                                                         .font(.system(size: 12, weight: .bold, design: .rounded))
                                                         .foregroundColor(.orange)
                                                     
@@ -173,9 +202,9 @@ struct GlobalStatCard: View {
                 .font(.system(size: 14))
             
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
-                .contentTransition(.numericText()) 
+                .contentTransition(.numericText())
             
             Text(title.uppercased())
                 .font(.system(size: 8, weight: .black))
