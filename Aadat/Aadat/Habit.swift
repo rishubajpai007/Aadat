@@ -6,25 +6,47 @@ final class Habit {
     @Attribute(.unique) var id: UUID
     var name: String
     var creationDate: Date
-    var completionDates: [Date]
+    private var completionDatesData: Data
     var category: HabitCategory = HabitCategory.other
-    var reminderTime: Date? 
+    var reminderTime: Date?
+    
+    var completionDates: [Date] {
+        get {
+            guard !completionDatesData.isEmpty else { return [] }
+            do {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .secondsSince1970
+                return try decoder.decode([Date].self, from: completionDatesData)
+            } catch {
+                return []
+            }
+        }
+        set {
+            do {
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .secondsSince1970
+                completionDatesData = try encoder.encode(newValue)
+            } catch {
+            }
+        }
+    }
     
     init(name: String, category: HabitCategory = .other, reminderTime: Date? = nil) {
         self.id = UUID()
         self.name = name
         self.creationDate = Date()
-        self.completionDates = []
         self.category = category
         self.reminderTime = reminderTime
+        self.completionDatesData = Data("[]".utf8)
     }
     
     // MARK: - Streak Calculation (Daily)
     var currentStreak: Int {
-        guard !completionDates.isEmpty else { return 0 }
+        let dates = completionDates
+        guard !dates.isEmpty else { return 0 }
 
         let calendar = Calendar.current
-        let uniqueSortedDays = Set(completionDates.map { calendar.startOfDay(for: $0) })
+        let uniqueSortedDays = Set(dates.map { calendar.startOfDay(for: $0) })
             .sorted()
 
         var streak = 0
@@ -49,11 +71,11 @@ final class Habit {
     
     // MARK: - Longest Streak (All-time)
     var longestStreak: Int {
-        guard !completionDates.isEmpty else { return 0 }
+        let dates = completionDates
+        guard !dates.isEmpty else { return 0 }
         
         let calendar = Calendar.current
-        // Unique days, sorted ascending
-        let uniqueSortedDays = Array(Set(completionDates.map { calendar.startOfDay(for: $0) })).sorted()
+        let uniqueSortedDays = Array(Set(dates.map { calendar.startOfDay(for: $0) })).sorted()
         
         var longest = 1
         var current = 1

@@ -60,7 +60,7 @@ struct ConcentrationModeView: View {
                             if viewModel.duration > 0 && !viewModel.isRunning {
                                 if viewModel.isStrictMode {
                                     VStack(spacing: 6) {
-                                        Image(systemName: "iphone.smartrectangle.rotate.right")
+                                        Image(systemName: "rotate.right")
                                             .font(.title3)
                                             .symbolEffect(.bounce, options: .repeat(.continuous))
                                         Text("Flip to Focus")

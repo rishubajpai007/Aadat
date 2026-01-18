@@ -37,7 +37,7 @@ struct AddHabitView: View {
             
                 HStack {
                     Button("Cancel") {
-                        dismiss()
+                        dismissWithKeyboardCleanup()
                     }
                     .font(.system(.body, design: .rounded))
                     .foregroundColor(.secondary)
@@ -195,6 +195,13 @@ struct AddHabitView: View {
         }
     }
     
+    private func dismissWithKeyboardCleanup() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            dismiss()
+        }
+    }
+    
     private func saveOrUpdateHabit() {
         let trimmedName = habitName.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalReminderTime = isReminderEnabled ? reminderTime : nil
@@ -217,7 +224,7 @@ struct AddHabitView: View {
             )
         }
         
-        dismiss()
+        dismissWithKeyboardCleanup()
     }
 }
 

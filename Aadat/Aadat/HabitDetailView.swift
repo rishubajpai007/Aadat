@@ -278,8 +278,8 @@ struct HabitCalendarView: View {
             .padding(.horizontal, 4)
             
             HStack {
-                ForEach(daysOfWeek, id: \.self) { day in
-                    Text(day)
+                ForEach(daysOfWeek.indices, id: \.self) { i in
+                    Text(daysOfWeek[i])
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
@@ -290,8 +290,8 @@ struct HabitCalendarView: View {
             let columns = Array(repeating: GridItem(.flexible()), count: 7)
             
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(days, id: \.self) { date in
-                    if let date = date {
+                ForEach(days.indices, id: \.self) { idx in
+                    if let date = days[idx] {
                         CalendarDayCell(date: date, habit: habit)
                     } else {
                         Color.clear.frame(height: 32)
